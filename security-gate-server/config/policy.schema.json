@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SecurityGatePolicy",
+  "type": "object",
+  "required": ["version", "agentId", "allowedChains", "rateLimits", "tokenPolicies", "contractWhitelist"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0.0" },
+    "agentId": { "type": "string" },
+    "allowedChains": {
+      "type": "array",
+      "items": { "type": "integer" },
+      "description": "허용된 Chain ID 목록 (예: 8453: Base, 137: Polygon)"
+    },
+    "rateLimits": {
+      "type": "object",
+      "required": ["cooldownSeconds", "maxRequestsPerMinute"],
+      "properties": {
+        "cooldownSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "동일 자산/메서드 재호출 최소 대기 시간 (초)"
+        },
+        "maxRequestsPerMinute": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "분당 최대 트랜잭션 요청 횟수"
+        }
+      }
+    },
+    "tokenPolicies": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["decimals", "maxPerTx", "maxDailyLimit"],
+        "properties": {
+          "decimals": { "type": "integer", "minimum": 0, "maximum": 18 },
+          "maxPerTx": { "type": "string", "pattern": "^[0-9]+$", "description": "단일 건 최대 지출 한도 (Atomic 단위)" },
+          "maxDailyLimit": { "type": "string", "pattern": "^[0-9]+$", "description": "24시간 롤링 윈도우 누적 지출 한도 (Atomic 단위)" }
+        }
+      }
+    },
+    "contractWhitelist": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["chainId", "address", "allowedSelectors"],
+        "properties": {
+          "chainId": { "type": "integer" },
+          "address": { "type": "string", "pattern": "^0x[a-fA-F0-9]{40}$" },
+          "label": { "type": "string" },
+          "allowedSelectors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{8}$",
+              "description": "허용된 4-byte 함수 시그니처 (예: 0xa9059cbb = transfer)"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "extraPaths": [
+    "asi-asset-agent",
+    "gene-clinical-agent",
+    ".venv/Lib/site-packages"
+  ],
+  "exclude": [
+    "**/.venv",
+    "**/__pycache__",
+    "asi-asset-agent/.venv",
+    ".venv"
+  ]
+}

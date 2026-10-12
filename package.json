@@ -1,0 +1,29 @@
+﻿{
+    "name":  "onchain-finance-agent",
+    "version":  "1.0.0",
+    "description":  "Autonomous On-Chain Financial Agent System with Deterministic Security-Gate Guardrails",
+    "private":  true,
+    "type":  "module",
+    "workspaces":  [
+                       "security-gate-server",
+                       "eliza-agent-bridge"
+                   ],
+    "scripts":  {
+                    "start:gate":  "npm run start --workspace=security-gate-server",
+                    "dev:gate":  "npm run dev --workspace=security-gate-server",
+                    "start:fund":  "tsx eliza-agent-bridge/src/autonomousFundLoop.ts",
+                    "test":  "tsx tests/security-gate.test.ts",
+                    "test:redteam":  "tsx tests/red-team-stress.test.ts",
+                    "test:escrow":  "tsx tests/universal-escrow-interop.test.ts",
+                    "test:preflight":  "tsx tests/full-preflight-safety-mesh.test.ts",
+                    "test:live":  "tsx tests/live-market-feed.test.ts",
+                    "start:telegram":  "tsx eliza-agent-bridge/src/telegramInteractiveAgent.ts",
+                    "build":  "npm run build --workspaces",
+                    "test:vault":  "tsx tests/dehedge-vault.test.ts"
+                },
+    "devDependencies":  {
+                            "@types/node":  "^22.10.2",
+                            "tsx":  "^4.19.2",
+                            "typescript":  "^5.7.2"
+                        }
+}
