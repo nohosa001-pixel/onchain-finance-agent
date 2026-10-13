@@ -9,10 +9,8 @@ import type { PolicyConfig, TxRequest } from "../../security-gate-server/src/typ
 
 dotenv.config();
 
-const BOT_TOKEN =
-  process.env.TELEGRAM_BOT_TOKEN ||
-  "8880957375:AAEnisdcvRBj5ebZlYQIuQ_M1Z8d3HET0gg";
-const ALLOWED_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "8884575098";
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
+const ALLOWED_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "";
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
 
 const ERC20_ABI = parseAbi([

@@ -8,10 +8,8 @@ export class TelegramNotifier {
   private enabled: boolean;
 
   constructor() {
-    this.token =
-      process.env.TELEGRAM_BOT_TOKEN ||
-      "8880957375:AAEnisdcvRBj5ebZlYQIuQ_M1Z8d3HET0gg";
-    this.chatId = process.env.TELEGRAM_CHAT_ID || "8884575098";
+    this.token = process.env.TELEGRAM_BOT_TOKEN || "";
+    this.chatId = process.env.TELEGRAM_CHAT_ID || "";
     this.enabled = Boolean(this.token && this.chatId);
   }
 
