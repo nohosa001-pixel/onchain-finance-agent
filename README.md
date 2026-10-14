@@ -1,5 +1,6 @@
 # 🛡️ On-Chain Finance Agent (`onchain-finance-agent`)
 
+[![CI](https://github.com/nohosa001-pixel/onchain-finance-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/nohosa001-pixel/onchain-finance-agent/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![Viem](https://img.shields.io/badge/Web3-Viem-black.svg?logo=ethereum)](https://viem.sh/)
 [![ERC-4626](https://img.shields.io/badge/Standard-ERC--4626-4C51BF.svg)](https://eips.ethereum.org/EIPS/eip-4626)

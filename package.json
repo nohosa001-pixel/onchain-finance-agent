@@ -1,9 +1,12 @@
-﻿{
+{
     "name":  "onchain-finance-agent",
     "version":  "1.0.0",
     "description":  "Autonomous On-Chain Financial Agent System with Deterministic Security-Gate Guardrails",
     "private":  true,
     "type":  "module",
+    "engines": {
+        "node": ">=22.0.0"
+    },
     "workspaces":  [
                        "security-gate-server",
                        "eliza-agent-bridge"
