@@ -30,7 +30,7 @@ async function runTestSuite() {
     agentId: "test-agent",
     allowedChains: [8453, 137],
     rateLimits: {
-      cooldownSeconds: 2,
+      cooldownSeconds: 1,
       maxRequestsPerMinute: 10,
     },
     tokenPolicies: {
@@ -66,7 +66,7 @@ async function runTestSuite() {
   assert(res1.approved === true, "Valid 50 USDC transfer must be approved");
   assert(res1.decodedMethod === "transfer", "Decoded method must be transfer");
 
-  // 2. 쿨다운 검증 (2초 이내 재호출)
+  // 2. 쿨다운 검증 (1초 이내 재호출)
   console.log("\n--- Test 2: Cooldown Enforcement ---");
   const res2 = await gate.validateTransaction({
     chainId: 8453,
@@ -76,9 +76,9 @@ async function runTestSuite() {
   assert(res2.approved === false, "Immediate retry must be rejected by cooldown");
   assert(res2.reason?.includes("Cooldown") === true, "Rejection reason must mention Cooldown");
 
-  // 2초 대기하여 쿨다운 해제
-  console.log("Waiting 2.1s for cooldown to elapse...");
-  await new Promise((r) => setTimeout(r, 2100));
+  // 1.5초 대기하여 쿨다운 해제 (CI 지터 방지)
+  console.log("Waiting 1.5s for cooldown to elapse...");
+  await new Promise((r) => setTimeout(r, 1500));
 
   // 3. 비인가 체인 (예: Chain 1 Ethereum Mainnet)
   console.log("\n--- Test 3: Unauthorized Chain ID ---");
@@ -142,7 +142,7 @@ async function runTestSuite() {
   });
   assert(res7_1.approved === true, "Second transfer of 80 USDC must be approved (130 / 200)");
 
-  await new Promise((r) => setTimeout(r, 2100)); // 쿨다운 해제
+  await new Promise((r) => setTimeout(r, 1500)); // 쿨다운 해제 (1초 대비 1.5초 대기)
 
   // 다시 80 USDC 시도 -> 130 + 80 = 210 > 200 USDC
   const res7_2 = await gate.validateTransaction({
