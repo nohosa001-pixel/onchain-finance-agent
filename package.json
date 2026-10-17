@@ -21,8 +21,10 @@
                     "test:preflight":  "tsx tests/full-preflight-safety-mesh.test.ts",
                     "test:live":  "tsx tests/live-market-feed.test.ts",
                     "start:telegram":  "tsx eliza-agent-bridge/src/telegramInteractiveAgent.ts",
+                    "start:autonomous": "tsx eliza-agent-bridge/src/continuousAutonomousLoop.ts",
                     "build":  "npm run build --workspaces",
-                    "test:vault":  "tsx tests/dehedge-vault.test.ts"
+                    "test:vault":  "tsx tests/dehedge-vault.test.ts",
+                    "deploy:vault": "tsx scripts/deploy-vault.ts"
                 },
     "devDependencies":  {
                             "@types/node":  "^22.10.2",

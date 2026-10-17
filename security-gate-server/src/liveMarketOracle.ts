@@ -1,9 +1,9 @@
-import { createPublicClient, http, parseAbi } from "viem";
+import { createPublicClient, http, fallback, parseAbi } from "viem";
 import { base } from "viem/chains";
 
 // Base 메인넷 주요 DEX 풀 주소
 export const UNISWAP_V3_WETH_USDC_BASE = "0xd0b53D9277642d899DF5C87A3966A349A798F224" as const; // 0.05% 풀
-export const AERODROME_POOL_WETH_USDC_BASE = "0xB4885Bc63399BF55161f4C8Fa2a4B19fE94d455F" as const;
+export const AERODROME_POOL_WETH_USDC_BASE = "0xcDAC0d6c6C59727a65F871236188350531885C43" as const; // vAMM WETH/USDC (Volatile)
 
 const UNISWAP_V3_POOL_ABI = parseAbi([
   "function slot0() external view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)",
@@ -12,6 +12,8 @@ const UNISWAP_V3_POOL_ABI = parseAbi([
 
 const AERODROME_POOL_ABI = parseAbi([
   "function getReserves() external view returns (uint256 reserve0, uint256 reserve1, uint256 blockTimestampLast)",
+  "function token0() external view returns (address)",
+  "function token1() external view returns (address)",
 ]);
 
 export interface LiveMarketSnapshot {
@@ -30,12 +32,14 @@ export class LiveMarketOracle {
   private memoryHistory: Array<{ timestamp: number; spreadBps: number; uniPrice: number; aeroPrice: number }> = [];
 
   constructor(rpcUrl: string = "https://mainnet.base.org") {
+    // 다중 Fallback RPC 구성으로 네트워크 순단 방지 및 24/7 가용성 보장
     this.client = createPublicClient({
       chain: base,
-      transport: http(rpcUrl, {
-        timeout: 5000,
-        retryCount: 2,
-      }),
+      transport: fallback([
+        http(rpcUrl, { timeout: 6000, retryCount: 2 }),
+        http("https://base.llamarpc.com", { timeout: 6000, retryCount: 2 }),
+        http("https://1rpc.io/base", { timeout: 6000, retryCount: 2 }),
+      ]),
     });
   }
 
@@ -53,34 +57,51 @@ export class LiveMarketOracle {
   }
 
   /**
-   * Base 메인넷 실시간 DEX 풀에서 실제 살아있는 가격 조회 ($0 가스비)
+   * Aerodrome vAMM 리저브를 인간이 읽을 수 있는 ETH/USDC 가격으로 변환
+   * token0 = WETH (18 decimals), token1 = USDC (6 decimals)
+   * price = (reserve1 / 10^6) / (reserve0 / 10^18)
+   */
+  private decodeAerodromePrice(reserve0: bigint, reserve1: bigint): number {
+    const wethUnits = Number(reserve0) / 1e18;
+    const usdcUnits = Number(reserve1) / 1e6;
+    if (wethUnits === 0) return 0;
+    return Number((usdcUnits / wethUnits).toFixed(2));
+  }
+
+  /**
+   * Base 메인넷 실시간 DEX 풀에서 실제 살아있는 100% 온체인 가격 조회 ($0 가스비)
    */
   public async fetchLivePrices(): Promise<LiveMarketSnapshot> {
     const now = Date.now();
 
     try {
-      const [slot0Data, blockNum] = await Promise.all([
+      const [slot0Data, aeroReserves, blockNum] = await Promise.all([
         this.client.readContract({
           address: UNISWAP_V3_WETH_USDC_BASE,
           abi: UNISWAP_V3_POOL_ABI,
           functionName: "slot0",
+        }),
+        this.client.readContract({
+          address: AERODROME_POOL_WETH_USDC_BASE,
+          abi: AERODROME_POOL_ABI,
+          functionName: "getReserves",
         }),
         this.client.getBlockNumber(),
       ]);
 
       const sqrtPriceX96 = slot0Data[0];
       const uniPrice = this.decodeUniswapPrice(sqrtPriceX96);
+      const aeroPrice = this.decodeAerodromePrice(aeroReserves[0], aeroReserves[1]);
 
-      // Aerodrome 실제 풀 호가 또는 DEX 간 마켓 메이커 차익 스프레드 산출
-      // (온체인 미세 슬리피지 및 호가 갭 반영: 실시간 시장 노이즈 약 10~35 bps)
-      const marketVariance = Math.sin(now / 60000) * 0.0025; // 0.25% 자연 변동
-      const aeroPrice = Number((uniPrice * (1 + 0.0018 + marketVariance)).toFixed(2));
+      // 실제 두 DEX 간의 온체인 스프레드 계산
+      const rawSpread = ((aeroPrice - uniPrice) / uniPrice) * 10000;
+      const spreadBps = Number(Math.abs(rawSpread).toFixed(1));
 
-      const spreadBps = Number((((aeroPrice - uniPrice) / uniPrice) * 10000).toFixed(1));
+      // 차익거래 방향 판별
       const direction =
-        spreadBps > 15
+        rawSpread > 5
           ? "BUY_UNISWAP_SELL_AERODROME"
-          : spreadBps < -15
+          : rawSpread < -5
           ? "BUY_AERODROME_SELL_UNISWAP"
           : "BALANCED";
 
@@ -89,7 +110,7 @@ export class LiveMarketOracle {
         timestamp: now,
         uniswapV3EthPrice: uniPrice,
         aerodromeEthPrice: aeroPrice,
-        spreadBps: Math.abs(spreadBps),
+        spreadBps,
         arbitrageDirection: direction,
         isLiveRpcSuccess: true,
         blockNumber: blockNum,
@@ -98,7 +119,7 @@ export class LiveMarketOracle {
       // 에이전트 학습 메모리에 기록
       this.memoryHistory.push({
         timestamp: now,
-        spreadBps: Math.abs(spreadBps),
+        spreadBps,
         uniPrice,
         aeroPrice,
       });
@@ -139,3 +160,4 @@ export class LiveMarketOracle {
     };
   }
 }
+

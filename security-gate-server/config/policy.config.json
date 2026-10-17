@@ -1,7 +1,10 @@
 {
   "version": "1.0.0",
   "agentId": "wallstreet-disruptor-01",
-  "allowedChains": [8453, 137],
+  "allowedChains": [
+    8453,
+    137
+  ],
   "rateLimits": {
     "cooldownSeconds": 5,
     "maxRequestsPerMinute": 10
@@ -18,25 +21,48 @@
       "chainId": 8453,
       "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       "label": "Base USDC Token Contract",
-      "allowedSelectors": ["0xa9059cbb", "0x095ea7b3"]
+      "allowedSelectors": [
+        "0xa9059cbb",
+        "0x095ea7b3"
+      ]
     },
     {
       "chainId": 8453,
       "address": "0x2626664c2603336E57B271c5C0b26F421741e481",
       "label": "Uniswap Universal Router (Base)",
-      "allowedSelectors": ["0x3593564c", "0x24856833"]
+      "allowedSelectors": [
+        "0x3593564c",
+        "0x24856833"
+      ]
     },
     {
       "chainId": 8453,
       "address": "0x745F7FAfFdb626B931Fe769476a09125cbf9d94b",
       "label": "UniversalEscrowCore (Base Mainnet)",
-      "allowedSelectors": ["0xfbee5480", "0x47aed508"]
+      "allowedSelectors": [
+        "0xfbee5480",
+        "0x47aed508"
+      ]
     },
     {
       "chainId": 137,
       "address": "0x4Dbd77F4799816859a595f24a57A786516D2EAa8",
       "label": "UniversalEscrowCore (Polygon Mainnet)",
-      "allowedSelectors": ["0xfbee5480", "0x47aed508"]
+      "allowedSelectors": [
+        "0xfbee5480",
+        "0x47aed508"
+      ]
+    },
+    {
+      "name": "DeHedgeVault (ERC-4626)",
+      "chainId": 8453,
+      "address": "0x8ACafCEce0B1BFE140e75614b90FD1307b6f389d",
+      "allowedSelectors": [
+        "0xb6b55f25",
+        "0xba087652",
+        "0x6e553f65",
+        "0x2e1a7d4d"
+      ]
     }
   ]
 }
