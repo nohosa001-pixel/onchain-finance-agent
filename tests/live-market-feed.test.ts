@@ -72,8 +72,24 @@ async function runLiveMarketFeedTest() {
   assert(typeof liveRes.data?.marketData.ethUsdcUniswapV3 === "number", "라이브 마켓 데이터 바인딩 확인");
   console.log(`   └─ x402 오라클 + Base 메인넷 실시간 피드 결합 성공! (ETH: $${liveRes.data?.marketData.ethUsdcUniswapV3})\n`);
 
+  // --------------------------------------------------------------------------
+  // Test 4: 로컬 디스크 학습 데이터 영속화(Persistence) 복원 검증
+  // --------------------------------------------------------------------------
+  console.log("--- Test 4: Verifying Local Learning Persistence (Disk Storage & State Recovery) ---");
+  const recoveredOracle = new LiveMarketOracle();
+  const recoveredMetrics = recoveredOracle.getLearningMetrics();
+
+  assert(recoveredMetrics.totalObservations >= 3, "새로 생성된 오라클 인스턴스가 디스크에서 이전 학습 데이터를 복원해야 함");
+  assert(recoveredMetrics.rollingObservations >= 3, "롤링 이력 관측 건수가 정상 복원되어야 함");
+  assert(recoveredMetrics.avgSpreadBps > 0, "복원된 평균 스프레드가 유효해야 함");
+  assert(recoveredMetrics.storagePath.includes("market-learning-history.json"), "영속화 파일 경로가 정상 설정되어야 함");
+
+  console.log(`   └─ 💾 디스크 파일 경로: ${recoveredMetrics.storagePath}`);
+  console.log(`   └─ 🔄 복원된 총 관측 횟수: ${recoveredMetrics.totalObservations} 회 (상세 이력: ${recoveredMetrics.rollingObservations} 건)`);
+  console.log(`   └─ 📈 복원된 평균 스프레드: ${recoveredMetrics.avgSpreadBps} bps\n`);
+
   console.log("========================================================================");
-  console.log("🎉 LIVE ON-CHAIN MARKET FEED & LEARNING ENGINE VERIFIED 100%!");
+  console.log("🎉 LIVE ON-CHAIN MARKET FEED & PERSISTENT LEARNING ENGINE VERIFIED 100%!");
   console.log("========================================================================\n");
 }
 

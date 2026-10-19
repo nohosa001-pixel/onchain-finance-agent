@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { createPublicClient, http, fallback, parseAbi } from "viem";
 import { base } from "viem/chains";
 
@@ -16,6 +18,27 @@ const AERODROME_POOL_ABI = parseAbi([
   "function token1() external view returns (address)",
 ]);
 
+export interface MarketObservation {
+  timestamp: number;
+  spreadBps: number;
+  uniPrice: number;
+  aeroPrice: number;
+  direction?: string;
+  blockNumber?: string;
+}
+
+export interface PersistentLearningData {
+  version: "1.0.0";
+  pair: "WETH/USDC";
+  network: "Base Mainnet (8453)";
+  lastUpdated: number;
+  totalLifetimeObservations: number;
+  rollingWindowSize: number;
+  avgSpreadBps: number;
+  optimalEntryThresholdBps: number;
+  history: MarketObservation[];
+}
+
 export interface LiveMarketSnapshot {
   source: "Base Mainnet Live RPC";
   timestamp: number;
@@ -29,9 +52,15 @@ export interface LiveMarketSnapshot {
 
 export class LiveMarketOracle {
   private client;
-  private memoryHistory: Array<{ timestamp: number; spreadBps: number; uniPrice: number; aeroPrice: number }> = [];
+  private memoryHistory: MarketObservation[] = [];
+  private totalLifetimeObservations: number = 0;
+  private storageFilePath: string;
+  private readonly maxRollingHistory: number = 3000;
 
-  constructor(rpcUrl: string = "https://mainnet.base.org") {
+  constructor(rpcUrl: string = "https://mainnet.base.org", storagePath?: string) {
+    this.storageFilePath = this.resolveStoragePath(storagePath);
+    this.loadHistory();
+
     // 다중 Fallback RPC 구성으로 네트워크 순단 방지 및 24/7 가용성 보장
     this.client = createPublicClient({
       chain: base,
@@ -41,6 +70,106 @@ export class LiveMarketOracle {
         http("https://1rpc.io/base", { timeout: 6000, retryCount: 2 }),
       ]),
     });
+  }
+
+  /**
+   * 로컬 영속화 파일 경로 탐색 및 데이터 디렉터리 준비
+   */
+  private resolveStoragePath(customPath?: string): string {
+    if (customPath) return path.resolve(customPath);
+    if (process.env.LEARNING_DATA_PATH) return path.resolve(process.env.LEARNING_DATA_PATH);
+
+    const cwd = process.cwd();
+    let baseDir = cwd;
+
+    // 하위 패키지(security-gate-server 또는 eliza-agent-bridge)에서 실행 시 상위 루트 data/ 폴더로 통합
+    if (fs.existsSync(path.join(cwd, "..", "package.json"))) {
+      try {
+        const parentPkg = JSON.parse(fs.readFileSync(path.join(cwd, "..", "package.json"), "utf8"));
+        if (parentPkg.name === "onchain-finance-agent" || parentPkg.workspaces) {
+          baseDir = path.resolve(cwd, "..");
+        }
+      } catch {}
+    }
+
+    const dataDir = path.join(baseDir, "data");
+    if (!fs.existsSync(dataDir)) {
+      try {
+        fs.mkdirSync(dataDir, { recursive: true });
+      } catch (e: any) {
+        console.warn(`[LiveMarketOracle] Failed to create data dir: ${e.message}`);
+      }
+    }
+
+    return path.join(dataDir, "market-learning-history.json");
+  }
+
+  /**
+   * 디스크에서 영속화된 시장 학습 데이터 로드
+   */
+  public loadHistory(): void {
+    try {
+      if (fs.existsSync(this.storageFilePath)) {
+        const raw = fs.readFileSync(this.storageFilePath, "utf8");
+        const parsed = JSON.parse(raw) as PersistentLearningData;
+        if (parsed && Array.isArray(parsed.history)) {
+          this.memoryHistory = parsed.history;
+          this.totalLifetimeObservations = parsed.totalLifetimeObservations || parsed.history.length;
+          console.log(`💾 [LiveMarketOracle] 로컬 학습 데이터 복원 완료: 누적 ${this.totalLifetimeObservations}회 관측 (보관 상세: ${this.memoryHistory.length}건, 평균: ${parsed.avgSpreadBps} bps)`);
+        }
+      }
+    } catch (err: any) {
+      console.warn(`[LiveMarketOracle] 학습 데이터 로드 경고: ${err.message}. 새 메모리로 시작합니다.`);
+    }
+  }
+
+  /**
+   * 현재 학습 메모리 및 지표를 로컬 디스크에 영속 저장
+   */
+  public saveHistory(): void {
+    try {
+      const metrics = this.getLearningMetrics();
+      const payload: PersistentLearningData = {
+        version: "1.0.0",
+        pair: "WETH/USDC",
+        network: "Base Mainnet (8453)",
+        lastUpdated: Date.now(),
+        totalLifetimeObservations: this.totalLifetimeObservations,
+        rollingWindowSize: this.memoryHistory.length,
+        avgSpreadBps: metrics.avgSpreadBps,
+        optimalEntryThresholdBps: metrics.optimalEntryThresholdBps,
+        history: this.memoryHistory,
+      };
+
+      const dir = path.dirname(this.storageFilePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      fs.writeFileSync(this.storageFilePath, JSON.stringify(payload, null, 2), "utf8");
+    } catch (err: any) {
+      console.warn(`[LiveMarketOracle] 학습 데이터 저장 경고: ${err.message}`);
+    }
+  }
+
+  /**
+   * 저장 경로 반환
+   */
+  public getStoragePath(): string {
+    return this.storageFilePath;
+  }
+
+  /**
+   * 학습 기록 초기화 (테스트 또는 리셋용)
+   */
+  public clearHistory(): void {
+    this.memoryHistory = [];
+    this.totalLifetimeObservations = 0;
+    try {
+      if (fs.existsSync(this.storageFilePath)) {
+        fs.unlinkSync(this.storageFilePath);
+      }
+    } catch {}
   }
 
   /**
@@ -117,12 +246,25 @@ export class LiveMarketOracle {
       };
 
       // 에이전트 학습 메모리에 기록
-      this.memoryHistory.push({
+      const observation: MarketObservation = {
         timestamp: now,
         spreadBps,
         uniPrice,
         aeroPrice,
-      });
+        direction,
+        blockNumber: blockNum ? blockNum.toString() : undefined,
+      };
+
+      this.memoryHistory.push(observation);
+      this.totalLifetimeObservations++;
+
+      // 롤링 윈도우 유지 (메모리 및 JSON 파일 크기 안정화)
+      if (this.memoryHistory.length > this.maxRollingHistory) {
+        this.memoryHistory = this.memoryHistory.slice(-this.maxRollingHistory);
+      }
+
+      // 로컬 디스크 영속화 동기화
+      this.saveHistory();
 
       return snapshot;
     } catch (err: any) {
@@ -146,17 +288,25 @@ export class LiveMarketOracle {
    */
   public getLearningMetrics() {
     if (this.memoryHistory.length === 0) {
-      return { totalObservations: 0, avgSpreadBps: 0, optimalEntryThresholdBps: 20 };
+      return {
+        totalObservations: this.totalLifetimeObservations,
+        rollingObservations: 0,
+        avgSpreadBps: 0,
+        optimalEntryThresholdBps: 20,
+        storagePath: this.storageFilePath,
+      };
     }
     const total = this.memoryHistory.length;
     const avgSpread =
       this.memoryHistory.reduce((acc, cur) => acc + cur.spreadBps, 0) / total;
 
     return {
-      totalObservations: total,
+      totalObservations: Math.max(this.totalLifetimeObservations, total),
+      rollingObservations: total,
       avgSpreadBps: Number(avgSpread.toFixed(2)),
       optimalEntryThresholdBps: Number((avgSpread * 0.8).toFixed(1)), // 평균 스프레드의 80%를 진입선으로 학습
       latestSample: this.memoryHistory[this.memoryHistory.length - 1],
+      storagePath: this.storageFilePath,
     };
   }
 }
