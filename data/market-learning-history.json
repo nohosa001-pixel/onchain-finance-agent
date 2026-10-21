@@ -1,0 +1,252 @@
+{
+  "version": "1.0.0",
+  "pair": "WETH/USDC",
+  "network": "Base Mainnet (8453)",
+  "lastUpdated": 1792563390230,
+  "totalLifetimeObservations": 30609,
+  "rollingWindowSize": 30,
+  "avgSpreadBps": 7.71,
+  "optimalEntryThresholdBps": 6.2,
+  "history": [
+    {
+      "timestamp": 1792414416224,
+      "spreadBps": 7.7,
+      "uniPrice": 2421.99,
+      "aeroPrice": 2420.13,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52812534"
+    },
+    {
+      "timestamp": 1792414417581,
+      "spreadBps": 7.8,
+      "uniPrice": 2422.02,
+      "aeroPrice": 2420.13,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52812535"
+    },
+    {
+      "timestamp": 1792414418807,
+      "spreadBps": 7.8,
+      "uniPrice": 2422.02,
+      "aeroPrice": 2420.13,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52812535"
+    },
+    {
+      "timestamp": 1792414419028,
+      "spreadBps": 7.8,
+      "uniPrice": 2422.02,
+      "aeroPrice": 2420.13,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52812536"
+    },
+    {
+      "timestamp": 1792414457322,
+      "spreadBps": 7.8,
+      "uniPrice": 2422.02,
+      "aeroPrice": 2420.14,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52812555"
+    },
+    {
+      "timestamp": 1792414458687,
+      "spreadBps": 7.8,
+      "uniPrice": 2422.02,
+      "aeroPrice": 2420.14,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52812555"
+    },
+    {
+      "timestamp": 1792414459916,
+      "spreadBps": 7.8,
+      "uniPrice": 2422.02,
+      "aeroPrice": 2420.14,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52812556"
+    },
+    {
+      "timestamp": 1792414460134,
+      "spreadBps": 7.8,
+      "uniPrice": 2422.02,
+      "aeroPrice": 2420.14,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52812556"
+    },
+    {
+      "timestamp": 1792414570103,
+      "spreadBps": 6.9,
+      "uniPrice": 2421.85,
+      "aeroPrice": 2420.18,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52812611"
+    },
+    {
+      "timestamp": 1792414571665,
+      "spreadBps": 6.9,
+      "uniPrice": 2421.85,
+      "aeroPrice": 2420.18,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52812612"
+    },
+    {
+      "timestamp": 1792414572890,
+      "spreadBps": 6.9,
+      "uniPrice": 2421.85,
+      "aeroPrice": 2420.18,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52812612"
+    },
+    {
+      "timestamp": 1792414573105,
+      "spreadBps": 6.9,
+      "uniPrice": 2421.85,
+      "aeroPrice": 2420.18,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52812613"
+    },
+    {
+      "timestamp": 1792480159119,
+      "spreadBps": 9.4,
+      "uniPrice": 2394.68,
+      "aeroPrice": 2396.94,
+      "direction": "BUY_UNISWAP_SELL_AERODROME",
+      "blockNumber": "52845406"
+    },
+    {
+      "timestamp": 1792480160447,
+      "spreadBps": 9.4,
+      "uniPrice": 2394.68,
+      "aeroPrice": 2396.94,
+      "direction": "BUY_UNISWAP_SELL_AERODROME",
+      "blockNumber": "52845406"
+    },
+    {
+      "timestamp": 1792480161673,
+      "spreadBps": 9.3,
+      "uniPrice": 2394.72,
+      "aeroPrice": 2396.94,
+      "direction": "BUY_UNISWAP_SELL_AERODROME",
+      "blockNumber": "52845407"
+    },
+    {
+      "timestamp": 1792480161883,
+      "spreadBps": 9.3,
+      "uniPrice": 2394.72,
+      "aeroPrice": 2396.94,
+      "direction": "BUY_UNISWAP_SELL_AERODROME",
+      "blockNumber": "52845407"
+    },
+    {
+      "timestamp": 1792494234867,
+      "spreadBps": 12.1,
+      "uniPrice": 2386.22,
+      "aeroPrice": 2383.34,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52852444"
+    },
+    {
+      "timestamp": 1792494297683,
+      "spreadBps": 13.2,
+      "uniPrice": 2386.5,
+      "aeroPrice": 2383.34,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52852475"
+    },
+    {
+      "timestamp": 1792494299080,
+      "spreadBps": 13.2,
+      "uniPrice": 2386.5,
+      "aeroPrice": 2383.34,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52852476"
+    },
+    {
+      "timestamp": 1792494300305,
+      "spreadBps": 13.2,
+      "uniPrice": 2386.5,
+      "aeroPrice": 2383.34,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52852476"
+    },
+    {
+      "timestamp": 1792494300521,
+      "spreadBps": 13.2,
+      "uniPrice": 2386.5,
+      "aeroPrice": 2383.34,
+      "direction": "BUY_AERODROME_SELL_UNISWAP",
+      "blockNumber": "52852476"
+    },
+    {
+      "timestamp": 1792536126070,
+      "spreadBps": 1.3,
+      "uniPrice": 2456.4,
+      "aeroPrice": 2456.08,
+      "direction": "BALANCED",
+      "blockNumber": "52873389"
+    },
+    {
+      "timestamp": 1792536127636,
+      "spreadBps": 1.3,
+      "uniPrice": 2456.4,
+      "aeroPrice": 2456.08,
+      "direction": "BALANCED",
+      "blockNumber": "52873390"
+    },
+    {
+      "timestamp": 1792536128860,
+      "spreadBps": 1.3,
+      "uniPrice": 2456.4,
+      "aeroPrice": 2456.08,
+      "direction": "BALANCED",
+      "blockNumber": "52873390"
+    },
+    {
+      "timestamp": 1792536129074,
+      "spreadBps": 1.3,
+      "uniPrice": 2456.4,
+      "aeroPrice": 2456.08,
+      "direction": "BALANCED",
+      "blockNumber": "52873391"
+    },
+    {
+      "timestamp": 1792536432945,
+      "spreadBps": 2,
+      "uniPrice": 2455.84,
+      "aeroPrice": 2456.34,
+      "direction": "BALANCED",
+      "blockNumber": "52873543"
+    },
+    {
+      "timestamp": 1792536434310,
+      "spreadBps": 2,
+      "uniPrice": 2455.84,
+      "aeroPrice": 2456.34,
+      "direction": "BALANCED",
+      "blockNumber": "52873543"
+    },
+    {
+      "timestamp": 1792536435524,
+      "spreadBps": 2,
+      "uniPrice": 2455.84,
+      "aeroPrice": 2456.34,
+      "direction": "BALANCED",
+      "blockNumber": "52873544"
+    },
+    {
+      "timestamp": 1792536435740,
+      "spreadBps": 2,
+      "uniPrice": 2455.84,
+      "aeroPrice": 2456.34,
+      "direction": "BALANCED",
+      "blockNumber": "52873544"
+    },
+    {
+      "timestamp": 1792563389975,
+      "spreadBps": 25.8,
+      "uniPrice": 2436.59,
+      "aeroPrice": 2442.87,
+      "direction": "BUY_UNISWAP_SELL_AERODROME",
+      "blockNumber": "52887021"
+    }
+  ]
+}

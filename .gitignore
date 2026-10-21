@@ -6,4 +6,7 @@ dist/
 *.log
 .DS_Store
 data/*.json
+!data/market-learning-history.json
 !data/.gitkeep
+data/*.bak
+data/backups/

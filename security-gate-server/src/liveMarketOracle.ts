@@ -114,7 +114,12 @@ export class LiveMarketOracle {
         const parsed = JSON.parse(raw) as PersistentLearningData;
         if (parsed && Array.isArray(parsed.history)) {
           this.memoryHistory = parsed.history;
-          this.totalLifetimeObservations = parsed.totalLifetimeObservations || parsed.history.length;
+          // 메모리의 관측치와 디스크의 누적치 중 큰 값을 취함
+          this.totalLifetimeObservations = Math.max(
+            this.totalLifetimeObservations,
+            parsed.totalLifetimeObservations || 0,
+            parsed.history.length
+          );
           console.log(`💾 [LiveMarketOracle] 로컬 학습 데이터 복원 완료: 누적 ${this.totalLifetimeObservations}회 관측 (보관 상세: ${this.memoryHistory.length}건, 평균: ${parsed.avgSpreadBps} bps)`);
         }
       }
@@ -124,31 +129,70 @@ export class LiveMarketOracle {
   }
 
   /**
-   * 현재 학습 메모리 및 지표를 로컬 디스크에 영속 저장
+   * 현재 학습 메모리 및 지표를 로컬 디스크에 영속 저장 (Crash-Proof & Monotonic Invariant 보장)
    */
   public saveHistory(): void {
     try {
+      const dir = path.dirname(this.storageFilePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      // [단조 증가 잠금] 디스크에 이미 존재하는 파일의 관측 수치를 확인하여 절대 하향 덮어쓰기 방지
+      let diskLifetime = 0;
+      if (fs.existsSync(this.storageFilePath)) {
+        try {
+          const existingRaw = fs.readFileSync(this.storageFilePath, "utf8");
+          const existingParsed = JSON.parse(existingRaw);
+          if (existingParsed && typeof existingParsed.totalLifetimeObservations === "number") {
+            diskLifetime = existingParsed.totalLifetimeObservations;
+          }
+        } catch {}
+      }
+
+      const safeTotalLifetime = Math.max(this.totalLifetimeObservations, diskLifetime);
+      this.totalLifetimeObservations = safeTotalLifetime;
+
       const metrics = this.getLearningMetrics();
       const payload: PersistentLearningData = {
         version: "1.0.0",
         pair: "WETH/USDC",
         network: "Base Mainnet (8453)",
         lastUpdated: Date.now(),
-        totalLifetimeObservations: this.totalLifetimeObservations,
+        totalLifetimeObservations: safeTotalLifetime,
         rollingWindowSize: this.memoryHistory.length,
         avgSpreadBps: metrics.avgSpreadBps,
         optimalEntryThresholdBps: metrics.optimalEntryThresholdBps,
         history: this.memoryHistory,
       };
 
-      const dir = path.dirname(this.storageFilePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+      // 1. 자동 롤링 백업 (.bak) 생성
+      const bakPath = `${this.storageFilePath}.bak`;
+      if (fs.existsSync(this.storageFilePath)) {
+        try {
+          fs.copyFileSync(this.storageFilePath, bakPath);
+        } catch {}
       }
 
-      fs.writeFileSync(this.storageFilePath, JSON.stringify(payload, null, 2), "utf8");
+      // 2. 일일 스냅샷 아카이브 (data/backups/learning-YYYY-MM-DD.json)
+      const backupDir = path.join(dir, "backups");
+      if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir, { recursive: true });
+      }
+      const dateStr = new Date().toISOString().split("T")[0];
+      const dailySnapshotPath = path.join(backupDir, `market-learning-${dateStr}.json`);
+      if (!fs.existsSync(dailySnapshotPath) && fs.existsSync(this.storageFilePath)) {
+        try {
+          fs.copyFileSync(this.storageFilePath, dailySnapshotPath);
+        } catch {}
+      }
+
+      // 3. 원자적 쓰기 (Atomic Swap): .tmp 파일에 먼저 기록 후 renameSync
+      const tmpPath = `${this.storageFilePath}.tmp`;
+      fs.writeFileSync(tmpPath, JSON.stringify(payload, null, 2), "utf8");
+      fs.renameSync(tmpPath, this.storageFilePath);
     } catch (err: any) {
-      console.warn(`[LiveMarketOracle] 학습 데이터 저장 경고: ${err.message}`);
+      console.warn(`[LiveMarketOracle] 학습 데이터 영속화 경고: ${err.message}`);
     }
   }
 
@@ -160,14 +204,20 @@ export class LiveMarketOracle {
   }
 
   /**
-   * 학습 기록 초기화 (테스트 또는 리셋용)
+   * 학습 기록 초기화 (테스트 또는 리셋용 - 백업 보존)
    */
-  public clearHistory(): void {
+  public clearHistory(force: boolean = false): void {
+    if (!force) {
+      console.warn("⚠️ [LiveMarketOracle] 중요 학습 데이터 보호를 위해 clearHistory는 force=true 없이 실행되지 않습니다.");
+      return;
+    }
     this.memoryHistory = [];
     this.totalLifetimeObservations = 0;
     try {
       if (fs.existsSync(this.storageFilePath)) {
-        fs.unlinkSync(this.storageFilePath);
+        // 비상 롤백용 아카이브 생성 후 삭제
+        const emergencyBak = `${this.storageFilePath}.deleted-${Date.now()}`;
+        fs.renameSync(this.storageFilePath, emergencyBak);
       }
     } catch {}
   }
