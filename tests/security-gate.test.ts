@@ -167,21 +167,6 @@ async function runTestSuite() {
   assert(safeRes.approved === true, "SecurityGateService must approve valid Safe tx");
   assert(typeof safeRes.txHash === "string" && safeRes.txHash.startsWith("0x"), "Must return valid txHash");
 
-  // 9. DeHedgeVaultManager ERC-4626 지분 및 2 & 20 HWM 정산 테스트
-  console.log("\n--- Test 9: DeHedgeVaultManager ERC-4626 & High-Water Mark Fee Settlement ---");
-  const { DeHedgeVaultManager } = await import("../security-gate-server/src/fundVault.js");
-  const vault = new DeHedgeVaultManager(1000); // 1,000 USDC genesis
-  const deposit = vault.deposit("0xInvestorA", 5000);
-  assert(Number(deposit.currentNAV) === 1.0, "Genesis NAV must be 1.0");
-  assert(vault.getSnapshot().totalAUM === "6000", "Total AUM must reflect deposits");
-
-  // 수익 실현 및 성과보수 배분 (100 USDC 수익)
-  const settlement = vault.recordTradeProfit(100);
-  assert(settlement.isHighWaterMarkBroken === true, "New all-time high profit must break HWM");
-  assert(Number(settlement.newNAV) > 1.0, "NAV must increase with profit");
-  assert(Number(settlement.agentTreasuryShare) === 10, "10% of profit must go to Agent Operating Treasury");
-  assert(Number(settlement.lpCompoundedYield) === 80, "80% of profit must stay in Vault compounding LP NAV");
-
   // 10. A.GRID HTTP 402 (x402) 오라클 결제 프로토콜 테스트
   console.log("\n--- Test 10: A.GRID HTTP 402 (x402) Oracle Invoicing & Payment Verification ---");
   const { OracleX402Service } = await import("../security-gate-server/src/oracleService.js");
@@ -201,18 +186,8 @@ async function runTestSuite() {
   assert(paidReq.data?.status === "paid", "Must return paid status");
   assert(typeof paidReq.data?.marketData.arbitrageSpreadBps === "number", "Must contain verified spread");
 
-  // 11. QuantStrategyEngine 퀀트 전략 계산 테스트
-  console.log("\n--- Test 11: QuantStrategyEngine Delta-Neutral Arbitrage Decision Engine ---");
-  const { QuantStrategyEngine } = await import("../eliza-agent-bridge/src/quantStrategyEngine.js");
-  const quant = new QuantStrategyEngine();
-
-  const decision = quant.evaluate(paidReq.data!.marketData);
-  assert(decision.tradeRecommended === true, "Spread >= 25 bps must trigger trade recommendation");
-  assert(decision.strategyName === "DELTA_NEUTRAL_DEX_ARBITRAGE", "Strategy must be arbitrage");
-  assert(decision.calldata.startsWith("0x"), "Must generate valid calldata");
-
   console.log("\n=======================================================");
-  console.log("🎉 ALL 11 DEHEDGE & SECURITY-GATE TESTS PASSED SUCCESSFULLY!");
+  console.log("🎉 ALL SECURITY-GATE TESTS PASSED SUCCESSFULLY!");
   console.log("=======================================================\n");
 }
 

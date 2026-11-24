@@ -1,5 +1,4 @@
 import { Hex } from "viem";
-import { LiveMarketOracle, type LiveMarketSnapshot } from "./liveMarketOracle.js";
 
 export interface OracleIntelligenceResponse {
   status: "paid";
@@ -37,11 +36,6 @@ export class OracleX402Service {
     "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"; // A.GRID Oracle Settlement Treasury
   private verifiedPayments: Set<string> = new Set();
   private queryCounter: number = 0;
-  private liveOracle: LiveMarketOracle = new LiveMarketOracle();
-
-  public getLiveOracle(): LiveMarketOracle {
-    return this.liveOracle;
-  }
 
   /**
    * x402 시장 데이터 조회
@@ -102,48 +96,6 @@ export class OracleX402Service {
           optimalAction: spreadBps > 20 ? "ARBITRAGE_BUY_UNISWAP_SELL_AERODROME" : "NO_OP_BALANCED",
           liquidityDepthUSDC: 2450000,
           volatilityIndex: 16.8,
-          riskScore: "LOW",
-        },
-      },
-    };
-  }
-
-  /**
-   * Base 메인넷 라이브 풀 가격을 직접 읽어와 학습 데이터로 반영하는 비동기 실전 오라클 엔드포인트
-   */
-  public async fetchLiveMarketIntelligence(paymentProof?: string): Promise<{
-    isPaid: boolean;
-    data?: OracleIntelligenceResponse;
-    invoice?: any;
-    liveSnapshot?: LiveMarketSnapshot;
-  }> {
-    const baseRes = this.handleMarketIntelligenceRequest(paymentProof);
-    if (!baseRes.isPaid) {
-      return baseRes;
-    }
-
-    const liveSnapshot = await this.liveOracle.fetchLivePrices();
-
-    return {
-      isPaid: true,
-      liveSnapshot,
-      data: {
-        status: "paid",
-        timestamp: liveSnapshot.timestamp,
-        oracleSource: "A.GRID-Institutional-Oracle",
-        network: "Base",
-        marketData: {
-          ethUsdcUniswapV3: liveSnapshot.uniswapV3EthPrice,
-          ethUsdcAerodrome: liveSnapshot.aerodromeEthPrice,
-          arbitrageSpreadBps: liveSnapshot.spreadBps,
-          optimalAction:
-            liveSnapshot.arbitrageDirection === "BUY_UNISWAP_SELL_AERODROME"
-              ? "ARBITRAGE_BUY_UNISWAP_SELL_AERODROME"
-              : liveSnapshot.arbitrageDirection === "BUY_AERODROME_SELL_UNISWAP"
-              ? "ARBITRAGE_BUY_AERODROME_SELL_UNISWAP"
-              : "NO_OP_BALANCED",
-          liquidityDepthUSDC: 3200000,
-          volatilityIndex: 15.2,
           riskScore: "LOW",
         },
       },

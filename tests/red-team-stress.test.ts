@@ -1,7 +1,6 @@
 import { encodeFunctionData, parseAbi, parseUnits, toHex, keccak256, type Hex } from "viem";
 import { SecurityGate } from "../security-gate-server/src/gate.js";
 import { OracleX402Service } from "../security-gate-server/src/oracleService.js";
-import { DeHedgeVaultManager } from "../security-gate-server/src/fundVault.js";
 import type { PolicyConfig, TxRequest } from "../security-gate-server/src/types.js";
 
 const ERC20_ABI = parseAbi([
@@ -201,32 +200,9 @@ async function runRedTeamStressTestSuite() {
   );
   console.log("✅ [결과] 고동시성 레이스 컨디션 한도 돌파 방어 완료\n");
 
-  // --------------------------------------------------------------------------
-  // Attack 5: Vault Accounting Distortion & High-Water Mark Attack (수익 정산 왜곡 공격)
-  // --------------------------------------------------------------------------
-  console.log("--- [Attack 5] Vault Accounting Distortion & Negative Yield Attack ---");
-  console.log("목표: 손실(-500 USDC) 발생 시 수수료를 뜯어가거나 High-Water Mark를 속일 수 있는지 검증");
-
-  const vault = new DeHedgeVaultManager();
-  vault.deposit("0xHonestLP", 10000); // 10,000 USDC 수탁
-
-  // 손실 발생 (profit = -500)
-  const lossSettlement = vault.recordTradeProfit(-500);
-  assert(!lossSettlement.isHighWaterMarkBroken, "손실 발생 시 HWM은 절대 갱신되면 안 됨");
-  assert(parseFloat(lossSettlement.agentTreasuryShare) === 0, "손실 발생 시 성과 수수료는 $0이어야 함");
-  assert(parseFloat(lossSettlement.newNAV) < 1.0, "손실 후 NAV는 1.0 미만으로 정직하게 하락해야 함");
-  console.log(`   └─ 손실 반영 NAV: $${lossSettlement.newNAV} (HWM 경신 방지 및 수수료 0원 동결 확인)`);
-
-  // 손실 만회 후 이전 고점 돌파 전까지 수수료 징수 차단 확인
-  const recoverySettlement = vault.recordTradeProfit(200); // 아직 원금(10,000) 미회복 (-300)
-  assert(!recoverySettlement.isHighWaterMarkBroken, "고점 회복 전에는 여전히 HWM 경신 불가");
-  assert(parseFloat(recoverySettlement.agentTreasuryShare) === 0, "고점 회복 전에는 수수료 징수 불가");
-  console.log("   └─ 손실 회복 구간(Rebound) 수수료 0원 방어 확인");
-  console.log("✅ [결과] High-Water Mark 금융 수학 조작 공격 방어 완료\n");
-
   console.log("========================================================================");
-  console.log("🏆 ALL 5 ADVERSARIAL RED-TEAM ATTACK SCENARIOS SUCCESSFULLY THWARTED!");
-  console.log("   Zero Drain | Zero Race-Condition | Zero Crash | Zero Ledger Fraud");
+  console.log("🏆 ALL ADVERSARIAL RED-TEAM ATTACK SCENARIOS SUCCESSFULLY THWARTED!");
+  console.log("   Zero Drain | Zero Race-Condition | Zero Crash");
   console.log("========================================================================\n");
 }
 

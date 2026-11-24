@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 import { Hex } from "viem";
 import { SecurityGateService, PolicyConfig } from "./securityGateService.js";
 import { OracleX402Service } from "./oracleService.js";
-import { DeHedgeVaultManager } from "./fundVault.js";
+import { KywOracleService } from "./kywOracleService.js";
 
 dotenv.config();
 
@@ -65,7 +65,7 @@ const gateService = new SecurityGateService(
 );
 
 const oracleService = new OracleX402Service();
-const vaultManager = new DeHedgeVaultManager(1000); // 1,000 USDC genesis AUM
+const kywOracleService = new KywOracleService();
 
 // API Key 인증 미들웨어
 const authenticate = (req: Request, res: Response, next: NextFunction): void => {
@@ -85,9 +85,10 @@ const authenticate = (req: Request, res: Response, next: NextFunction): void => 
 app.get("/health", (_req: Request, res: Response) => {
   res.json({
     status: "ok",
+    service: "A.GRID KYW & Solvency Oracle",
     safeConfigured: !!process.env.SAFE_ADDRESS,
     chains: policyConfig.allowedChains,
-    vaultAUM: vaultManager.getSnapshot().totalAUM,
+    kywStats: kywOracleService.getStats(),
     oracleStats: oracleService.getStats(),
     timestamp: Date.now(),
   });
@@ -119,33 +120,36 @@ app.get("/v1/oracle/market-intelligence", (req: Request, res: Response) => {
 });
 
 // -------------------------------------------------------------
-// 🏦 ERC-4626 DeHedge Vault 엔드포인트
+// 🔍 A.GRID Counterparty KYW & Solvency Oracle (x402 Protected)
 // -------------------------------------------------------------
-app.get("/v1/vault/status", (_req: Request, res: Response) => {
-  res.json({
-    status: "active",
-    vault: vaultManager.getSnapshot(),
+app.get("/v1/kyw/stats", (_req: Request, res: Response) => {
+  res.json({ status: "active", ...kywOracleService.getStats() });
+});
+
+app.post("/v1/kyw/verify", async (req: Request, res: Response): Promise<void> => {
+  const paymentProof = req.headers["x-402-payment-proof"] as string | undefined;
+  const vaultKey = req.headers["x-vault-key"] as string | undefined;
+  const payCheck = kywOracleService.validateX402Payment(paymentProof, vaultKey);
+  if (!payCheck.isPaid) {
+    res.status(402).json(payCheck.invoice);
+    return;
+  }
+
+  const { counterpartyAddress, chainId, requiredAmountUSDC, escrowJobId } = req.body || {};
+  if (!counterpartyAddress || chainId === undefined || requiredAmountUSDC === undefined) {
+    res.status(400).json({
+      error: "Missing required fields: counterpartyAddress, chainId, requiredAmountUSDC",
+    });
+    return;
+  }
+
+  const result = await kywOracleService.verifyCounterparty({
+    counterpartyAddress: String(counterpartyAddress),
+    chainId: Number(chainId),
+    requiredAmountUSDC: Number(requiredAmountUSDC),
+    escrowJobId,
   });
-});
-
-app.post("/v1/vault/deposit", (req: Request, res: Response) => {
-  const { investor, amountUSDC } = req.body;
-  if (!investor || !amountUSDC || amountUSDC <= 0) {
-    res.status(400).json({ error: "Invalid investor or amountUSDC." });
-    return;
-  }
-  const result = vaultManager.deposit(investor, Number(amountUSDC));
-  res.json({ success: true, ...result, vault: vaultManager.getSnapshot() });
-});
-
-app.post("/v1/vault/record-profit", authenticate, (req: Request, res: Response) => {
-  const { profitUSDC } = req.body;
-  if (!profitUSDC || profitUSDC <= 0) {
-    res.status(400).json({ error: "Invalid profitUSDC amount." });
-    return;
-  }
-  const result = vaultManager.recordTradeProfit(Number(profitUSDC));
-  res.json({ success: true, settlement: result, vault: vaultManager.getSnapshot() });
+  res.status(200).json(result);
 });
 
 // -------------------------------------------------------------
@@ -192,9 +196,9 @@ if (process.env.NODE_ENV !== "test" && isMain) {
     console.log(`🛡️ [Security-Gate] Listening on http://localhost:${PORT}`);
     console.log(`💼 Safe Account: ${process.env.SAFE_ADDRESS || "(Simulation/Mock Mode)"}`);
     console.log(`🔗 RPC: ${process.env.RPC_URL || "https://mainnet.base.org"}`);
-    console.log(`🌐 x402 Oracle: http://localhost:${PORT}/v1/oracle/market-intelligence`);
-    console.log(`🏦 Vault Status: http://localhost:${PORT}/v1/vault/status`);
+    console.log(`🌐 KYW & Solvency Oracle: http://localhost:${PORT}/v1/kyw/verify`);
+    console.log(`📊 KYW Stats: http://localhost:${PORT}/v1/kyw/stats`);
   });
 }
 
-export { app, gateService, oracleService, vaultManager };
+export { app, gateService, oracleService, kywOracleService };
