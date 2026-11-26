@@ -5,8 +5,12 @@ import {
   isAddressEqual,
   keccak256,
   toHex,
+  createPublicClient,
+  createWalletClient,
+  http,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { base } from "viem/chains";
 import SafeModule from "@safe-global/protocol-kit";
 import { OperationType, type MetaTransactionData } from "@safe-global/types-kit";
 
@@ -157,6 +161,32 @@ export class SecurityGateService {
   }): Promise<Hex> {
     if (!this.safeAddress || !this.sessionKeyPrivateKey) {
       throw new Error("Safe address or Session key is not configured.");
+    }
+
+    const signerAccount = privateKeyToAccount(this.sessionKeyPrivateKey);
+    const publicClient = createPublicClient({
+      chain: base,
+      transport: http(this.rpcUrl),
+    });
+
+    const bytecode = await publicClient.getBytecode({ address: this.safeAddress });
+    const isContract = Boolean(bytecode && bytecode !== "0x");
+
+    // EOA 직접 서명 모드 (메타마스크 Account 2 등 스마트 컨트랙트가 아닌 EOA 지갑인 경우)
+    if (!isContract || this.safeAddress.toLowerCase() === signerAccount.address.toLowerCase()) {
+      const walletClient = createWalletClient({
+        account: signerAccount,
+        chain: base,
+        transport: http(this.rpcUrl),
+      });
+
+      const txHash = await walletClient.sendTransaction({
+        to: params.to,
+        value: BigInt(params.value || "0"),
+        data: params.data,
+      });
+
+      return txHash as Hex;
     }
 
     // Safe SDK 인스턴스 초기화 (Safe.init v4/v5 API)
